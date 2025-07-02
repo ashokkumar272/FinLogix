@@ -1,58 +1,62 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Transaction, TransactionFilter } from '../types/transaction';
 import TransactionTabs from '../components/TransactionTabs';
 import TransactionList from '../components/TransactionList';
 import TransactionModal from '../components/TransactionModal';
+import { transactionService } from '../services/transactionService';
 
 const Transactions: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TransactionFilter>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [totals, setTotals] = useState({
+    income: 0,
+    expenses: 0,
+    balance: 0
+  });
 
-  // Mock data - in a real app, this would come from an API or state management
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    {
-      id: '1',
-      date: '2025-07-01',
-      amount: 3500.00,
-      category: 'Salary',
-      notes: 'Monthly salary',
-      type: 'income'
-    },
-    {
-      id: '2',
-      date: '2025-07-01',
-      amount: 1200.00,
-      category: 'Bills & Utilities',
-      notes: 'Rent payment',
-      type: 'expense'
-    },
-    {
-      id: '3',
-      date: '2025-06-30',
-      amount: 85.50,
-      category: 'Food & Dining',
-      notes: 'Grocery shopping',
-      type: 'expense'
-    },
-    {
-      id: '4',
-      date: '2025-06-29',
-      amount: 250.00,
-      category: 'Freelance',
-      notes: 'Website design project',
-      type: 'income'
-    },
-    {
-      id: '5',
-      date: '2025-06-28',
-      amount: 45.20,
-      category: 'Transportation',
-      notes: 'Gas station',
-      type: 'expense'
+  // Load transactions on component mount
+  useEffect(() => {
+    loadTransactions();
+  }, []);
+
+  const loadTransactions = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await transactionService.getTransactions({
+        per_page: 100 // Get more transactions for better overview
+      });
+      
+      setTransactions(response.transactions);
+      
+      // Calculate totals
+      const income = response.transactions
+        .filter(t => t.type === 'income')
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      const expenses = response.transactions
+        .filter(t => t.type === 'expense')
+        .reduce((sum, t) => sum + t.amount, 0);
+      
+      setTotals({
+        income,
+        expenses,
+        balance: income - expenses
+      });
+      
+    } catch (err: any) {
+      console.error('Error loading transactions:', err);
+      setError('Failed to load transactions. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-  ]);
+  };
 
   // Filter transactions based on active tab
   const filteredTransactions = useMemo(() => {
@@ -67,23 +71,6 @@ const Transactions: React.FC = () => {
     );
   }, [filteredTransactions]);
 
-  // Calculate totals
-  const totals = useMemo(() => {
-    const income = transactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    const expenses = transactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0);
-    
-    return {
-      income,
-      expenses,
-      balance: income - expenses
-    };
-  }, [transactions]);
-
   const handleAddTransaction = () => {
     setModalMode('add');
     setEditingTransaction(undefined);
@@ -96,33 +83,61 @@ const Transactions: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleDeleteTransaction = (id: string) => {
+  const handleDeleteTransaction = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this transaction?')) {
-      setTransactions(prev => prev.filter(t => t.id !== id));
+      try {
+        await transactionService.deleteTransaction(id);
+        await loadTransactions(); // Reload transactions
+      } catch (err: any) {
+        console.error('Error deleting transaction:', err);
+        setError('Failed to delete transaction. Please try again.');
+      }
     }
   };
 
-  const handleSaveTransaction = (transactionData: Omit<Transaction, 'id'>) => {
-    if (modalMode === 'add') {
-      const newTransaction: Transaction = {
-        ...transactionData,
-        id: Date.now().toString() // Simple ID generation - use proper UUID in production
-      };
-      setTransactions(prev => [newTransaction, ...prev]);
-    } else if (editingTransaction) {
-      setTransactions(prev => 
-        prev.map(t => 
-          t.id === editingTransaction.id 
-            ? { ...transactionData, id: editingTransaction.id }
-            : t
-        )
-      );
+  const handleSaveTransaction = async (transactionData: Omit<Transaction, 'id'>) => {
+    try {
+      if (modalMode === 'add') {
+        await transactionService.createTransaction(transactionData);
+      } else if (editingTransaction) {
+        await transactionService.updateTransaction(editingTransaction.id, transactionData);
+      }
+      
+      await loadTransactions(); // Reload transactions
+      setIsModalOpen(false);
+      
+    } catch (err: any) {
+      console.error('Error saving transaction:', err);
+      setError('Failed to save transaction. Please try again.');
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading transactions...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4 py-8">
+        
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+            <p className="text-sm">{error}</p>
+            <button 
+              onClick={() => setError(null)}
+              className="text-red-600 hover:text-red-800 text-sm font-medium mt-2"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

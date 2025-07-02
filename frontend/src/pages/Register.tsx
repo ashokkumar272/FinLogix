@@ -1,6 +1,7 @@
 import { useState } from "react";
 import InputField from "../components/InputField";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -9,18 +10,56 @@ const Register = () => {
     password: "",
     confirmPassword: "",
   });
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { register } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+    // Clear error when user starts typing
+    if (error) setError(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Registration data:", formData);
-    // Add your registration logic here
+    setIsLoading(true);
+    setError(null);
+
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate password length
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      await register(formData.fullName, formData.email, formData.password);
+      navigate("/transactions");
+    } catch (err: any) {
+      console.error("Registration error:", err);
+      
+      if (err.response?.data?.error) {
+        setError(err.response.data.error);
+      } else if (err.message) {
+        setError(err.message);
+      } else {
+        setError("Registration failed. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -30,6 +69,12 @@ const Register = () => {
           <h2 className="text-3xl font-extrabold text-white mb-2">Create an account</h2>
           <p className="text-sm text-gray-400">Start your financial journey with FinLogix</p>
         </div>
+        
+        {error && (
+          <div className="bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-lg">
+            <p className="text-sm">{error}</p>
+          </div>
+        )}
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md flex flex-col gap-2">
@@ -41,6 +86,7 @@ const Register = () => {
               value={formData.fullName}
               onChange={handleChange}
               required
+              disabled={isLoading}
             />
             <InputField 
               name="email"
@@ -50,6 +96,7 @@ const Register = () => {
               value={formData.email}
               onChange={handleChange}
               required
+              disabled={isLoading}
             />
             <InputField 
               name="password"
@@ -59,6 +106,7 @@ const Register = () => {
               value={formData.password}
               onChange={handleChange}
               required
+              disabled={isLoading}
             />
             <InputField 
               name="confirmPassword"
@@ -68,6 +116,7 @@ const Register = () => {
               value={formData.confirmPassword}
               onChange={handleChange}
               required
+              disabled={isLoading}
             />
           </div>
 
@@ -78,6 +127,7 @@ const Register = () => {
               type="checkbox"
               className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-600 rounded bg-gray-700"
               required
+              disabled={isLoading}
             />
             <label htmlFor="agree-terms" className="ml-2 block text-sm text-gray-300">
               I agree to the <a href="#" className="text-blue-500 hover:text-blue-400">Terms of Service</a> and <a href="#" className="text-blue-500 hover:text-blue-400">Privacy Policy</a>
@@ -87,9 +137,17 @@ const Register = () => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150"
+              disabled={isLoading}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign up
+              {isLoading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Creating account...
+                </div>
+              ) : (
+                "Sign up"
+              )}
             </button>
           </div>
           

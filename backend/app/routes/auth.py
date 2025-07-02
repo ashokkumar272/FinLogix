@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import create_access_token, create_refresh_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import create_access_token, get_jwt_identity
 from app import db
 from app.models.user import User, UserRole
 from app.utils.auth_utils import validate_email, validate_password, format_validation_error, get_current_user, token_required
@@ -53,14 +53,12 @@ def signup():
         db.session.commit()
         
         # Create tokens
-        access_token = create_access_token(identity=user.id)
-        refresh_token = create_refresh_token(identity=user.id)
+        access_token = create_access_token(identity=str(user.id))
         
         return jsonify({
             'message': 'User created successfully',
             'user': user.to_dict(),
-            'access_token': access_token,
-            'refresh_token': refresh_token
+            'access_token': access_token
         }), 201
         
     except Exception as e:
@@ -87,34 +85,11 @@ def login():
             return jsonify({'error': 'Invalid email or password'}), 401
         
         # Create tokens
-        access_token = create_access_token(identity=user.id)
-        refresh_token = create_refresh_token(identity=user.id)
+        access_token = create_access_token(identity=str(user.id))
         
         return jsonify({
             'message': 'Login successful',
             'user': user.to_dict(),
-            'access_token': access_token,
-            'refresh_token': refresh_token
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': 'Internal server error'}), 500
-
-@auth_bp.route('/refresh', methods=['POST'])
-@jwt_required(refresh=True)
-def refresh():
-    """Refresh access token using refresh token"""
-    try:
-        current_user_id = get_jwt_identity()
-        user = User.query.get(current_user_id)
-        
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
-        
-        # Create new access token
-        access_token = create_access_token(identity=user.id)
-        
-        return jsonify({
             'access_token': access_token
         }), 200
         
