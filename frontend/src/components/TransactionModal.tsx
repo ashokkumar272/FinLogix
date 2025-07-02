@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Transaction } from '../types/transaction';
 import InputField from './InputField';
 
@@ -25,21 +25,38 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     type: transaction?.type || 'expense' as 'income' | 'expense'
   });
 
-  const categories = [
-    'Food & Dining',
-    'Transportation',
-    'Shopping',
-    'Entertainment',
-    'Bills & Utilities',
-    'Healthcare',
-    'Education',
-    'Travel',
-    'Salary',
-    'Freelance',
-    'Investment',
-    'Gift',
-    'Other'
+  const incomeCategories = [
+    'salary',
+    'freelance', 
+    'business',
+    'investment',
+    'other_income'
   ];
+
+  const expenseCategories = [
+    'food',
+    'transportation',
+    'housing', 
+    'utilities',
+    'healthcare',
+    'entertainment',
+    'shopping',
+    'education',
+    'travel',
+    'other_expense'
+  ];
+
+  const getAvailableCategories = () => {
+    return formData.type === 'income' ? incomeCategories : expenseCategories;
+  };
+
+  // Reset category when type changes
+  useEffect(() => {
+    const availableCategories = getAvailableCategories();
+    if (formData.category && !availableCategories.includes(formData.category)) {
+      setFormData(prev => ({ ...prev, category: '' }));
+    }
+  }, [formData.type]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,9 +155,9 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
               required
             >
               <option value="">Select a category</option>
-              {categories.map((category) => (
+              {getAvailableCategories().map((category) => (
                 <option key={category} value={category}>
-                  {category}
+                  {category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </option>
               ))}
             </select>

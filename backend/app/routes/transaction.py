@@ -6,73 +6,26 @@ from app.models.user import User
 from app.utils.auth_utils import token_required, get_current_user
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from sqlalchemy import desc, and_, func, extract
+from sqlalchemy import desc
 
 transaction_bp = Blueprint('transaction', __name__)
 
 @transaction_bp.route('', methods=['GET'])
 @token_required
 def get_transactions():
-    """Get user's transactions with pagination and filtering"""
+    """Get user's transactions"""
     try:
         user = get_current_user()
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
-        # Get query parameters
-        page = request.args.get('page', 1, type=int)
-        per_page = min(request.args.get('per_page', 10, type=int), 100)
-        transaction_type = request.args.get('type')
-        category = request.args.get('category')
-        month = request.args.get('month', type=int)
-        year = request.args.get('year', type=int)
-        
-        # Build query
-        query = Transaction.query.filter_by(user_id=user.id)
-        
-        # Apply filters
-        if transaction_type:
-            try:
-                type_enum = TransactionType(transaction_type)
-                query = query.filter_by(type=type_enum)
-            except ValueError:
-                return jsonify({'error': 'Invalid transaction type'}), 400
-        
-        if category:
-            try:
-                category_enum = TransactionCategory(category)
-                query = query.filter_by(category=category_enum)
-            except ValueError:
-                return jsonify({'error': 'Invalid category'}), 400
-        
-        if year:
-            query = query.filter(extract('year', Transaction.created_at) == year)
-        
-        if month:
-            query = query.filter(extract('month', Transaction.created_at) == month)
-        
-        # Order by most recent first
-        query = query.order_by(desc(Transaction.created_at))
-        
-        # Paginate
-        pagination = query.paginate(
-            page=page, 
-            per_page=per_page, 
-            error_out=False
-        )
-        
-        transactions = [transaction.to_dict() for transaction in pagination.items]
+        # Get all transactions for the user, ordered by most recent first
+        transactions = Transaction.query.filter_by(user_id=user.id)\
+            .order_by(desc(Transaction.created_at))\
+            .all()
         
         return jsonify({
-            'transactions': transactions,
-            'pagination': {
-                'page': page,
-                'per_page': per_page,
-                'total': pagination.total,
-                'pages': pagination.pages,
-                'has_next': pagination.has_next,
-                'has_prev': pagination.has_prev
-            }
+            'transactions': [transaction.to_dict() for transaction in transactions]
         }), 200
         
     except Exception as e:

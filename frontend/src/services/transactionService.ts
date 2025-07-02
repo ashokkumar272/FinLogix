@@ -2,9 +2,9 @@ import api from './api';
 import { Transaction } from '../types/transaction';
 
 export interface BackendTransaction {
-  id: string;
+  id: number;
   amount: number;
-  description: string;
+  note: string;
   category: string;
   type: 'income' | 'expense';
   created_at: string;
@@ -13,7 +13,7 @@ export interface BackendTransaction {
 
 export interface CreateTransactionRequest {
   amount: number;
-  description: string;
+  note: string;
   category: string;
   type: 'income' | 'expense';
 }
@@ -22,29 +22,12 @@ export interface UpdateTransactionRequest extends CreateTransactionRequest {
   id: string;
 }
 
-export interface TransactionFilters {
-  page?: number;
-  per_page?: number;
-  type?: 'income' | 'expense';
-  category?: string;
-  month?: number;
-  year?: number;
-}
-
-export interface TransactionResponse {
-  transactions: BackendTransaction[];
-  total: number;
-  page: number;
-  per_page: number;
-  total_pages: number;
-}
-
 // Helper function to convert backend transaction to frontend format
 const convertTransaction = (backendTransaction: BackendTransaction): Transaction => ({
-  id: backendTransaction.id,
+  id: backendTransaction.id.toString(),
   amount: backendTransaction.amount,
   category: backendTransaction.category,
-  notes: backendTransaction.description,
+  notes: backendTransaction.note || '',
   type: backendTransaction.type,
   date: new Date(backendTransaction.created_at).toISOString().split('T')[0]
 });
@@ -52,35 +35,19 @@ const convertTransaction = (backendTransaction: BackendTransaction): Transaction
 // Helper function to convert frontend transaction to backend format
 const convertToBackend = (transaction: Omit<Transaction, 'id'>): CreateTransactionRequest => ({
   amount: transaction.amount,
-  description: transaction.notes,
+  note: transaction.notes,
   category: transaction.category,
   type: transaction.type
 });
 
 export const transactionService = {
-  async getTransactions(filters: TransactionFilters = {}): Promise<{
+  async getTransactions(): Promise<{
     transactions: Transaction[];
-    total: number;
-    page: number;
-    per_page: number;
-    total_pages: number;
   }> {
-    const params = new URLSearchParams();
-    
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, value.toString());
-      }
-    });
-
-    const response = await api.get(`/transactions?${params.toString()}`);
+    const response = await api.get('/transactions');
     
     return {
-      transactions: response.data.transactions.map(convertTransaction),
-      total: response.data.total,
-      page: response.data.page,
-      per_page: response.data.per_page,
-      total_pages: response.data.total_pages
+      transactions: response.data.transactions.map(convertTransaction)
     };
   },
 
@@ -98,24 +65,6 @@ export const transactionService = {
 
   async deleteTransaction(id: string): Promise<void> {
     await api.delete(`/transactions/${id}`);
-  },
-
-  async getTransactionStats(filters: { month?: number; year?: number } = {}): Promise<{
-    total_income: number;
-    total_expenses: number;
-    net_balance: number;
-    transaction_count: number;
-  }> {
-    const params = new URLSearchParams();
-    
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        params.append(key, value.toString());
-      }
-    });
-
-    const response = await api.get(`/transactions/stats?${params.toString()}`);
-    return response.data;
   }
 };
 

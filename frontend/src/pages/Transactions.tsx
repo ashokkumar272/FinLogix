@@ -29,9 +29,7 @@ const Transactions: React.FC = () => {
       setIsLoading(true);
       setError(null);
       
-      const response = await transactionService.getTransactions({
-        per_page: 100 // Get more transactions for better overview
-      });
+      const response = await transactionService.getTransactions();
       
       setTransactions(response.transactions);
       
