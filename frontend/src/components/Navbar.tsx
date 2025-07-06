@@ -38,8 +38,8 @@ const Navbar = () => {
               <Link to="/transactions" className="cursor-pointer hover:text-gray-400 px-3 py-1">
                 Transactions
               </Link>
-              <Link to="/profile" className="cursor-pointer hover:text-gray-400 px-3 py-1 text-gray-300">
-                Welcome, {user?.name || 'User'}
+              <Link to="/profile" className="cursor-pointer hover:text-gray-400 px-3 py-1">
+                Profile
               </Link>
               <button
                 onClick={handleLogout}

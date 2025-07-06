@@ -101,11 +101,11 @@ const Transactions: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="h-[calc(100vh-80px)] bg-gray-50 flex flex-col overflow-hidden">
+      <div className="max-w-2xl mx-auto px-4 py-1 flex-1 flex flex-col min-h-0 w-full">
         
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             <p className="text-sm">{error}</p>
             <button 
               onClick={() => setError(null)}
@@ -116,89 +116,22 @@ const Transactions: React.FC = () => {
           </div>
         )}
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Income</p>
-                <p className="text-2xl font-bold text-green-600">
-                  ${totals.income.toFixed(2)}
-                </p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-                <p className="text-2xl font-bold text-red-600">
-                  ${totals.expenses.toFixed(2)}
-                </p>
-              </div>
-              <div className="p-3 bg-red-100 rounded-full">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Balance</p>
-                <p className={`text-2xl font-bold ${
-                  totals.balance >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  ${totals.balance.toFixed(2)}
-                </p>
-              </div>
-              <div className={`p-3 rounded-full ${
-                totals.balance >= 0 ? 'bg-green-100' : 'bg-red-100'
-              }`}>
-                <svg className={`w-6 h-6 ${
-                  totals.balance >= 0 ? 'text-green-600' : 'text-red-600'
-                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                </svg>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Controls */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-          <div className="p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="p-2">
+            <div className="flex items-center justify-center">
               <TransactionTabs 
                 activeTab={activeTab} 
                 onTabChange={(tab) => setActiveTab(tab as TransactionFilter)} 
               />
-              
-              <button
-                onClick={handleAddTransaction}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg flex items-center gap-2 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
-                Add Transaction
-              </button>
             </div>
           </div>
         </div>
 
         {/* Transaction List */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col min-h-0">
+          <div className="px-4 py-2 border-b border-gray-200">
+            <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">
                 {activeTab === 'all' ? 'All Transactions' : 
                  activeTab === 'income' ? 'Income Transactions' : 'Expense Transactions'}
@@ -207,7 +140,9 @@ const Transactions: React.FC = () => {
                 {sortedTransactions.length} transaction{sortedTransactions.length !== 1 ? 's' : ''}
               </span>
             </div>
-            
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-4 min-h-0">
             <TransactionList
               transactions={sortedTransactions}
               onEdit={handleEditTransaction}
@@ -215,6 +150,16 @@ const Transactions: React.FC = () => {
             />
           </div>
         </div>
+
+        {/* Floating Add Transaction Button */}
+        <button
+          onClick={handleAddTransaction}
+          className="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white w-14 h-14 rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-200 z-10"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+        </button>
       </div>
     </div>
   );
