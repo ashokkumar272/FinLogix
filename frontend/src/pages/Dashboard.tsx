@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Transaction } from '../types/transaction';
-import { transactionService } from '../services/transactionService';
+import { dashboardService, DashboardSummary } from '../services/dashboardService';
 import { useAuth } from '../contexts/AuthContext';
 
 type DateFilter = 'today' | 'week' | 'month' | 'custom';
@@ -15,6 +15,7 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<DateFilter>('month');
@@ -23,72 +24,96 @@ const Dashboard: React.FC = () => {
     end: ''
   });
 
-  // Load transactions on component mount
+  // Load dashboard data on component mount and when date filters change
   useEffect(() => {
-    loadTransactions();
-  }, [user]);
+    loadDashboardData();
+  }, [user, dateFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadTransactions = async () => {
+  // Separate effect for custom date range to avoid excessive API calls
+  useEffect(() => {
+    if (dateFilter === 'custom' && customDateRange.start && customDateRange.end) {
+      // Add a small delay to avoid excessive API calls while user is still typing
+      const timeoutId = setTimeout(() => {
+        loadDashboardData();
+      }, 500);
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [customDateRange, dateFilter]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const getDateRangeParams = () => {
+    const now = new Date();
+    let startDate: string | undefined;
+    let endDate: string | undefined;
+
+    switch (dateFilter) {
+      case 'today':
+        startDate = now.toISOString().split('T')[0];
+        endDate = now.toISOString().split('T')[0];
+        break;
+      case 'week':
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - now.getDay());
+        startDate = weekStart.toISOString().split('T')[0];
+        endDate = now.toISOString().split('T')[0];
+        break;
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        endDate = now.toISOString().split('T')[0];
+        break;
+      case 'custom':
+        if (customDateRange.start && customDateRange.end) {
+          startDate = customDateRange.start;
+          endDate = customDateRange.end;
+        }
+        break;
+      default:
+        break;
+    }
+
+    return { start_date: startDate, end_date: endDate };
+  };
+
+  const loadDashboardData = async () => {
     try {
       setIsLoading(true);
       setError(null);
       
-      const response = await transactionService.getTransactions();
-      setTransactions(response.transactions);
+      const dateParams = getDateRangeParams();
+      
+      // Load summary and transactions in parallel
+      const [summaryResponse, transactionsResponse] = await Promise.all([
+        dashboardService.getSummary(dateParams),
+        dashboardService.getTransactions(dateParams)
+      ]);
+      
+      setSummary(summaryResponse);
+      setTransactions(transactionsResponse.transactions);
       
     } catch (err: any) {
-      console.error('Error loading transactions:', err);
-      setError('Failed to load transactions. Please try again.');
+      console.error('Error loading dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Filter transactions based on selected date range
-  const filteredTransactions = useMemo(() => {
-    const now = new Date();
-    let startDate: Date;
-    let endDate: Date = now;
-
-    switch (dateFilter) {
-      case 'today':
-        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-        break;
-      case 'week':
-        const weekStart = new Date(now);
-        weekStart.setDate(now.getDate() - now.getDay());
-        startDate = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate());
-        break;
-      case 'month':
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        break;
-      case 'custom':
-        if (customDateRange.start && customDateRange.end) {
-          startDate = new Date(customDateRange.start);
-          endDate = new Date(customDateRange.end);
-          endDate.setHours(23, 59, 59);
-        } else {
-          return transactions;
-        }
-        break;
-      default:
-        return transactions;
-    }
-
-    return transactions.filter(transaction => {
-      const transactionDate = new Date(transaction.date);
-      return transactionDate >= startDate && transactionDate <= endDate;
-    });
-  }, [transactions, dateFilter, customDateRange]);
-
-  // Calculate totals from filtered transactions
+  // Calculate totals from backend summary data
   const totals = useMemo(() => {
-    const income = filteredTransactions
+    if (summary) {
+      return {
+        income: summary.summary.total_income,
+        expenses: summary.summary.total_expenses,
+        balance: summary.summary.balance
+      };
+    }
+    
+    // Fallback to frontend calculation if summary is not available
+    const income = transactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
     
-    const expenses = filteredTransactions
+    const expenses = transactions
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
     
@@ -97,7 +122,7 @@ const Dashboard: React.FC = () => {
       expenses,
       balance: income - expenses
     };
-  }, [filteredTransactions]);
+  }, [summary, transactions]);
 
 
 
@@ -139,8 +164,22 @@ const Dashboard: React.FC = () => {
         
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-          <p className="text-gray-600">Get an overview of your financial activity</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+              <p className="text-gray-600">Get an overview of your financial activity</p>
+            </div>
+            <button
+              onClick={loadDashboardData}
+              disabled={isLoading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {isLoading ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -207,7 +246,13 @@ const Dashboard: React.FC = () => {
             {(['today', 'week', 'month', 'custom'] as DateFilter[]).map((filter) => (
               <button
                 key={filter}
-                onClick={() => setDateFilter(filter)}
+                onClick={() => {
+                  setDateFilter(filter);
+                  // Clear custom date range when switching away from custom
+                  if (filter !== 'custom') {
+                    setCustomDateRange({ start: '', end: '' });
+                  }
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   dateFilter === filter
                     ? 'bg-blue-600 text-white'
@@ -223,7 +268,7 @@ const Dashboard: React.FC = () => {
           </div>
 
           {dateFilter === 'custom' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
                 <input
@@ -242,6 +287,15 @@ const Dashboard: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+              <div className="flex items-end">
+                <button
+                  onClick={loadDashboardData}
+                  disabled={!customDateRange.start || !customDateRange.end || isLoading}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLoading ? 'Loading...' : 'Apply Filter'}
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -252,11 +306,15 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Current Balance</p>
-                <p className={`text-3xl font-bold ${
-                  totals.balance >= 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  ${totals.balance.toFixed(2)}
-                </p>
+                {isLoading ? (
+                  <div className="h-8 bg-gray-200 rounded animate-pulse mt-2"></div>
+                ) : (
+                  <p className={`text-3xl font-bold ${
+                    totals.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                  }`}>
+                    ${totals.balance.toFixed(2)}
+                  </p>
+                )}
                 <p className="text-xs text-gray-500 mt-1">{getDateFilterLabel()}</p>
               </div>
               <div className={`p-3 rounded-full ${
@@ -275,9 +333,13 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Income</p>
-                <p className="text-3xl font-bold text-green-600">
-                  ${totals.income.toFixed(2)}
-                </p>
+                {isLoading ? (
+                  <div className="h-8 bg-gray-200 rounded animate-pulse mt-2"></div>
+                ) : (
+                  <p className="text-3xl font-bold text-green-600">
+                    ${totals.income.toFixed(2)}
+                  </p>
+                )}
                 <p className="text-xs text-gray-500 mt-1">{getDateFilterLabel()}</p>
               </div>
               <div className="p-3 bg-green-100 rounded-full">
@@ -292,9 +354,13 @@ const Dashboard: React.FC = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-                <p className="text-3xl font-bold text-red-600">
-                  ${totals.expenses.toFixed(2)}
-                </p>
+                {isLoading ? (
+                  <div className="h-8 bg-gray-200 rounded animate-pulse mt-2"></div>
+                ) : (
+                  <p className="text-3xl font-bold text-red-600">
+                    ${totals.expenses.toFixed(2)}
+                  </p>
+                )}
                 <p className="text-xs text-gray-500 mt-1">{getDateFilterLabel()}</p>
               </div>
               <div className="p-3 bg-red-100 rounded-full">

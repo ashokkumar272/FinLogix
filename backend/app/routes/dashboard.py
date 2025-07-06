@@ -21,15 +21,46 @@ def get_summary():
         # Get query parameters for date filtering
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
         
         # Base query for user's transactions
         base_query = Transaction.query.filter_by(user_id=user.id)
         
-        # Apply date filters if provided
-        if year:
+        # Apply date range filters if provided (takes precedence over month/year)
+        if start_date and end_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+                # Include the entire end date by adding 1 day and using less than
+                end_date_obj = end_date_obj + timedelta(days=1)
+                base_query = base_query.filter(
+                    and_(
+                        Transaction.created_at >= start_date_obj,
+                        Transaction.created_at < end_date_obj
+                    )
+                )
+            except ValueError:
+                return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        elif start_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+                base_query = base_query.filter(Transaction.created_at >= start_date_obj)
+            except ValueError:
+                return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
+        elif end_date:
+            try:
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+                # Include the entire end date by adding 1 day and using less than
+                end_date_obj = end_date_obj + timedelta(days=1)
+                base_query = base_query.filter(Transaction.created_at < end_date_obj)
+            except ValueError:
+                return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
+        # Apply traditional month/year filters if no date range is provided
+        elif year:
             base_query = base_query.filter(extract('year', Transaction.created_at) == year)
-        if month:
-            base_query = base_query.filter(extract('month', Transaction.created_at) == month)
+            if month:
+                base_query = base_query.filter(extract('month', Transaction.created_at) == month)
         
         # Calculate total income
         total_income = base_query.filter_by(type=TransactionType.INCOME).with_entities(
@@ -75,6 +106,8 @@ def get_category_breakdown():
         # Get query parameters
         month = request.args.get('month', type=int)
         year = request.args.get('year', type=int)
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
         transaction_type = request.args.get('type', 'expense')  # Default to expenses
         
         # Validate transaction type
@@ -86,11 +119,40 @@ def get_category_breakdown():
         # Base query
         query = Transaction.query.filter_by(user_id=user.id, type=type_enum)
         
-        # Apply date filters
-        if year:
+        # Apply date range filters if provided (takes precedence over month/year)
+        if start_date and end_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+                # Include the entire end date by adding 1 day and using less than
+                end_date_obj = end_date_obj + timedelta(days=1)
+                query = query.filter(
+                    and_(
+                        Transaction.created_at >= start_date_obj,
+                        Transaction.created_at < end_date_obj
+                    )
+                )
+            except ValueError:
+                return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        elif start_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+                query = query.filter(Transaction.created_at >= start_date_obj)
+            except ValueError:
+                return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
+        elif end_date:
+            try:
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+                # Include the entire end date by adding 1 day and using less than
+                end_date_obj = end_date_obj + timedelta(days=1)
+                query = query.filter(Transaction.created_at < end_date_obj)
+            except ValueError:
+                return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
+        # Apply traditional month/year filters if no date range is provided
+        elif year:
             query = query.filter(extract('year', Transaction.created_at) == year)
-        if month:
-            query = query.filter(extract('month', Transaction.created_at) == month)
+            if month:
+                query = query.filter(extract('month', Transaction.created_at) == month)
         
         # Group by category and sum amounts
         category_data = query.with_entities(
@@ -136,8 +198,44 @@ def get_monthly_trends():
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
-        # Get last 12 months of data
+        # Get query parameters for date filtering
         year = request.args.get('year', datetime.now().year, type=int)
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # Base filter conditions
+        filter_conditions = [Transaction.user_id == user.id]
+        
+        # Apply date range filters if provided (takes precedence over year)
+        if start_date and end_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+                # Include the entire end date by adding 1 day and using less than
+                end_date_obj = end_date_obj + timedelta(days=1)
+                filter_conditions.extend([
+                    Transaction.created_at >= start_date_obj,
+                    Transaction.created_at < end_date_obj
+                ])
+            except ValueError:
+                return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        elif start_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+                filter_conditions.append(Transaction.created_at >= start_date_obj)
+            except ValueError:
+                return jsonify({'error': 'Invalid start_date format. Use YYYY-MM-DD'}), 400
+        elif end_date:
+            try:
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+                # Include the entire end date by adding 1 day and using less than
+                end_date_obj = end_date_obj + timedelta(days=1)
+                filter_conditions.append(Transaction.created_at < end_date_obj)
+            except ValueError:
+                return jsonify({'error': 'Invalid end_date format. Use YYYY-MM-DD'}), 400
+        # Apply traditional year filter if no date range is provided
+        elif year:
+            filter_conditions.append(extract('year', Transaction.created_at) == year)
         
         # Query for monthly data
         monthly_data = db.session.query(
@@ -145,10 +243,7 @@ def get_monthly_trends():
             Transaction.type,
             func.sum(Transaction.amount).label('total')
         ).filter(
-            and_(
-                Transaction.user_id == user.id,
-                extract('year', Transaction.created_at) == year
-            )
+            and_(*filter_conditions)
         ).group_by(
             extract('month', Transaction.created_at),
             Transaction.type
@@ -195,11 +290,73 @@ def get_stats():
         if not user:
             return jsonify({'error': 'User not found'}), 404
         
+        # Get query parameters for date filtering
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
         # Get current month and year
         now = datetime.now()
         current_month = now.month
         current_year = now.year
         
+        # If date range is provided, use it instead of current/last month comparison
+        if start_date and end_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+                # Include the entire end date by adding 1 day and using less than
+                end_date_obj = end_date_obj + timedelta(days=1)
+                
+                # Query for the specified date range
+                date_range_query = Transaction.query.filter(
+                    and_(
+                        Transaction.user_id == user.id,
+                        Transaction.created_at >= start_date_obj,
+                        Transaction.created_at < end_date_obj
+                    )
+                )
+                
+                # Calculate stats for the date range
+                range_income = date_range_query.filter_by(type=TransactionType.INCOME).with_entities(
+                    func.coalesce(func.sum(Transaction.amount), Decimal('0'))
+                ).scalar()
+                
+                range_expenses = date_range_query.filter_by(type=TransactionType.EXPENSE).with_entities(
+                    func.coalesce(func.sum(Transaction.amount), Decimal('0'))
+                ).scalar()
+                
+                # Get highest expense category in the date range
+                highest_expense_category = date_range_query.filter_by(type=TransactionType.EXPENSE).with_entities(
+                    Transaction.category,
+                    func.sum(Transaction.amount).label('total')
+                ).group_by(Transaction.category).order_by(func.sum(Transaction.amount).desc()).first()
+                
+                # Get average transaction amount in the date range
+                avg_transaction = date_range_query.with_entities(
+                    func.avg(Transaction.amount)
+                ).scalar()
+                
+                return jsonify({
+                    'stats': {
+                        'date_range': {
+                            'start_date': start_date,
+                            'end_date': end_date,
+                            'income': float(range_income),
+                            'expenses': float(range_expenses),
+                            'balance': float(range_income - range_expenses)
+                        },
+                        'insights': {
+                            'highest_expense_category': highest_expense_category[0].value if highest_expense_category else None,
+                            'highest_expense_amount': float(highest_expense_category[1]) if highest_expense_category else 0,
+                            'average_transaction_amount': float(avg_transaction) if avg_transaction else 0
+                        }
+                    }
+                }), 200
+                
+            except ValueError:
+                return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        
+        # Default behavior: current month vs last month comparison
         # This month's transactions
         this_month_query = Transaction.query.filter(
             and_(
@@ -281,6 +438,48 @@ def get_stats():
                     'average_transaction_amount': float(avg_transaction) if avg_transaction else 0
                 }
             }
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': 'Internal server error'}), 500
+
+@dashboard_bp.route('/transactions', methods=['GET'])
+@token_required
+def get_transactions():
+    """Get transactions with optional date range filtering"""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Get query parameters
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # Base query
+        query = Transaction.query.filter_by(user_id=user.id)
+        
+        # Apply date range filter if provided
+        if start_date and end_date:
+            try:
+                start_date_obj = datetime.strptime(start_date, '%Y-%m-%d')
+                end_date_obj = datetime.strptime(end_date, '%Y-%m-%d')
+                # Include the entire end date by adding 1 day and using less than
+                end_date_obj = end_date_obj + timedelta(days=1)
+                query = query.filter(
+                    and_(
+                        Transaction.updated_at >= start_date_obj,
+                        Transaction.updated_at < end_date_obj
+                    )
+                )
+            except ValueError:
+                return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+        
+        # Get transactions ordered by date (newest first)
+        transactions = query.order_by(Transaction.updated_at.desc()).all()
+        
+        return jsonify({
+            'transactions': [t.to_dict() for t in transactions]
         }), 200
         
     except Exception as e:
