@@ -481,7 +481,6 @@ def get_personalized_advice():
         }), 200
         
     except Exception as e:
-        print(f"Error in personalized advice: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
 
 def generate_gemini_advice(data):
@@ -498,60 +497,59 @@ def generate_gemini_advice(data):
         # Calculate total spending by category
         total_spending = sum(data['category_breakdown'].values())
         
-        # Create prompt for Gemini
         prompt = f"""
         You are a smart and friendly personal finance assistant for an app called FinLogix. 
-        
+
         Analyze this user's financial data and provide personalized budgeting advice:
-        
+
         Monthly Income: ${data['monthly_income']:.2f}
         Monthly Budget Goal: ${data.get('monthly_budget_goal', 'Not specified')}
         Current Month Category Spending:
         """
-        
+
         for category, amount in data['category_breakdown'].items():
             percentage = (amount / total_spending * 100) if total_spending > 0 else 0
             prompt += f"- {category}: ${amount:.2f} ({percentage:.1f}%)\n"
-        
+
         prompt += f"""
-        
+
         Recent transaction patterns from the last {data['analysis_period']}:
         """
-        
+
         # Add recent transactions summary
         income_count = sum(1 for t in data['recent_transactions'] if t['type'] == 'income')
         expense_count = sum(1 for t in data['recent_transactions'] if t['type'] == 'expense')
-        
+
         prompt += f"- Total transactions: {len(data['recent_transactions'])} ({income_count} income, {expense_count} expenses)\n"
-        
+
         # Add category frequency analysis
         category_frequency = {}
         for transaction in data['recent_transactions']:
             if transaction['type'] == 'expense':
                 category = transaction['category']
                 category_frequency[category] = category_frequency.get(category, 0) + 1
-        
+
         if category_frequency:
             most_frequent = max(category_frequency, key=category_frequency.get)
             prompt += f"- Most frequent spending category: {most_frequent} ({category_frequency[most_frequent]} transactions)\n"
-        
+
         prompt += f"""
-        
-        Please provide 2-3 short bullet points of personalized budgeting advice:
-        
+
+        Please provide exactly three short bullet points of personalized budgeting advice:
+
         1. Identify any overspending or budget imbalances
         2. Recognize spikes in specific categories (e.g., Dining, Travel, Shopping)
         3. Mention positive habits if they exist
         4. Suggest practical, actionable tips
-        
+
         Requirements:
         - Use simple, friendly language
         - Keep each point under 80 words
         - Be helpful and non-judgmental
         - Focus on actionable advice
         - If data is insufficient, provide general savings advice
-        
-        Format your response as a JSON array of advice strings.
+
+        Respond with exactly three short bullet points of advice. Do not include JSON or any extra formatting—just the three points. Ensure not adding headers. Just plain text.
         """
         
         # Make API call to Gemini
@@ -577,6 +575,7 @@ def generate_gemini_advice(data):
             json=payload,
             timeout=30
         )
+        print(response.json())
         
         if response.status_code == 200:
             result = response.json()
@@ -608,7 +607,6 @@ def generate_gemini_advice(data):
         return generate_fallback_advice(data)
         
     except Exception as e:
-        print(f"Error calling Gemini API: {str(e)}")
         return generate_fallback_advice(data)
 
 def generate_fallback_advice(data):
