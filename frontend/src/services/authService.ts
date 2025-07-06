@@ -1,12 +1,5 @@
 import api from './api';
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  created_at: string;
-}
+import { User } from '../types/user';
 
 export interface LoginRequest {
   email: string;
@@ -19,10 +12,29 @@ export interface RegisterRequest {
   password: string;
 }
 
+export interface UpdateProfileRequest {
+  name?: string;
+  email?: string;
+  phone_number?: string;
+  income_type?: string;
+  budget_goal?: number;
+  profile_picture?: string;
+}
+
+export interface ChangePasswordRequest {
+  current_password: string;
+  new_password: string;
+}
+
 export interface AuthResponse {
   message: string;
   user: User;
   access_token: string;
+}
+
+export interface ProfileResponse {
+  message: string;
+  user: User;
 }
 
 export const authService = {
@@ -77,7 +89,30 @@ export const authService = {
 
   getToken(): string | null {
     return localStorage.getItem('access_token');
-  }
+  },
+
+  async updateProfile(profileData: UpdateProfileRequest): Promise<ProfileResponse> {
+    const response = await api.put('/auth/profile', profileData);
+    
+    // Update user data in localStorage
+    localStorage.setItem('user', JSON.stringify(response.data.user));
+    
+    return response.data;
+  },
+
+  async changePassword(passwordData: ChangePasswordRequest): Promise<{ message: string }> {
+    const response = await api.put('/auth/change-password', passwordData);
+    return response.data;
+  },
+
+  async getProfile(): Promise<{ user: User }> {
+    const response = await api.get('/auth/profile');
+    
+    // Update user data in localStorage
+    localStorage.setItem('user', JSON.stringify(response.data.user));
+    
+    return response.data;
+  },
 };
 
 export default authService;

@@ -5,7 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    fullName: "",
+    name: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -38,14 +38,33 @@ const Register = () => {
     }
 
     // Validate password length
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long");
+    if (formData.password.length < 8) {
+      setError("Password must be at least 8 characters long");
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate password strength
+    if (!/[A-Z]/.test(formData.password)) {
+      setError("Password must contain at least one uppercase letter");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!/[a-z]/.test(formData.password)) {
+      setError("Password must contain at least one lowercase letter");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!/\d/.test(formData.password)) {
+      setError("Password must contain at least one number");
       setIsLoading(false);
       return;
     }
 
     try {
-      await register(formData.fullName, formData.email, formData.password);
+      await register(formData.name, formData.email, formData.password);
       navigate("/transactions");
     } catch (err: any) {
       console.error("Registration error:", err);
@@ -79,11 +98,11 @@ const Register = () => {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md flex flex-col gap-2">
             <InputField 
-              name="fullName"
+              name="name"
               type="text" 
               placeholder="Full Name" 
               label="Full Name"
-              value={formData.fullName}
+              value={formData.name}
               onChange={handleChange}
               required
               disabled={isLoading}
@@ -108,6 +127,9 @@ const Register = () => {
               required
               disabled={isLoading}
             />
+            <p className="text-xs text-gray-400 mt-1">
+              Password must be at least 8 characters with uppercase, lowercase, and number
+            </p>
             <InputField 
               name="confirmPassword"
               type="password" 

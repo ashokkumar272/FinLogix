@@ -8,55 +8,70 @@ interface TransactionModalProps {
   onSave: (transaction: Omit<Transaction, 'id'>) => void;
   transaction?: Transaction;
   mode: 'add' | 'edit';
+  initialType?: 'income' | 'expense';
 }
+
+const incomeCategories = [
+  'salary',
+  'freelance', 
+  'business',
+  'investment',
+  'other_income'
+];
+
+const expenseCategories = [
+  'food',
+  'transportation',
+  'housing', 
+  'utilities',
+  'healthcare',
+  'entertainment',
+  'shopping',
+  'education',
+  'travel',
+  'other_expense'
+];
 
 const TransactionModal: React.FC<TransactionModalProps> = ({
   isOpen,
   onClose,
   onSave,
   transaction,
-  mode
+  mode,
+  initialType
 }) => {
   const [formData, setFormData] = useState({
     date: transaction?.date || new Date().toISOString().split('T')[0],
     amount: transaction?.amount?.toString() || '',
     category: transaction?.category || '',
     notes: transaction?.notes || '',
-    type: transaction?.type || 'expense' as 'income' | 'expense'
+    type: transaction?.type || initialType || 'expense' as 'income' | 'expense'
   });
-
-  const incomeCategories = [
-    'salary',
-    'freelance', 
-    'business',
-    'investment',
-    'other_income'
-  ];
-
-  const expenseCategories = [
-    'food',
-    'transportation',
-    'housing', 
-    'utilities',
-    'healthcare',
-    'entertainment',
-    'shopping',
-    'education',
-    'travel',
-    'other_expense'
-  ];
 
   const getAvailableCategories = () => {
     return formData.type === 'income' ? incomeCategories : expenseCategories;
   };
 
+  // Reset form when modal opens or transaction changes
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        date: transaction?.date || new Date().toISOString().split('T')[0],
+        amount: transaction?.amount?.toString() || '',
+        category: transaction?.category || '',
+        notes: transaction?.notes || '',
+        type: transaction?.type || initialType || 'expense' as 'income' | 'expense'
+      });
+    }
+  }, [isOpen, transaction, initialType]);
+
   // Reset category when type changes
   useEffect(() => {
-    const availableCategories = getAvailableCategories();
+    const availableCategories = formData.type === 'income' ? incomeCategories : expenseCategories;
     if (formData.category && !availableCategories.includes(formData.category)) {
       setFormData(prev => ({ ...prev, category: '' }));
     }
-  }, [formData.type]);
+  }, [formData.type, formData.category]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

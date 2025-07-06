@@ -32,15 +32,15 @@ const Navbar = () => {
         {isAuthenticated ? (
           <>
             <ul className="sm:flex gap-5 hidden items-center">
+              <Link to="/dashboard" className="cursor-pointer hover:text-gray-400 px-3 py-1">
+                Dashboard
+              </Link>
               <Link to="/transactions" className="cursor-pointer hover:text-gray-400 px-3 py-1">
                 Transactions
               </Link>
-              <li className="cursor-pointer hover:text-gray-400 px-3 py-1">
-                Dashboard
-              </li>
-              <li className="text-gray-300">
+              <Link to="/profile" className="cursor-pointer hover:text-gray-400 px-3 py-1 text-gray-300">
                 Welcome, {user?.name || 'User'}
-              </li>
+              </Link>
               <button
                 onClick={handleLogout}
                 className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded-lg transition-colors duration-200"
@@ -58,13 +58,15 @@ const Navbar = () => {
             
             {isClicked && (
               <ul className="absolute right-10 top-16 p-5 text-black bg-white rounded border shadow-xl flex flex-col gap-3 z-50">
+                <Link to="/dashboard" className="cursor-pointer hover:text-gray-600">
+                  Dashboard
+                </Link>
                 <Link to="/transactions" className="cursor-pointer hover:text-gray-600">
                   Transactions
                 </Link>
-                <li className="cursor-pointer hover:text-gray-600">Dashboard</li>
-                <li className="text-gray-600 border-t pt-2">
+                <Link to="/profile" className="cursor-pointer hover:text-gray-600 text-gray-600 border-t pt-2">
                   {user?.name || 'User'}
-                </li>
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="cursor-pointer bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm"

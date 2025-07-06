@@ -1,15 +1,13 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Transaction, TransactionFilter } from '../types/transaction';
 import TransactionTabs from '../components/TransactionTabs';
 import TransactionList from '../components/TransactionList';
-import TransactionModal from '../components/TransactionModal';
 import { transactionService } from '../services/transactionService';
 
 const Transactions: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TransactionFilter>('all');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,15 +68,13 @@ const Transactions: React.FC = () => {
   }, [filteredTransactions]);
 
   const handleAddTransaction = () => {
-    setModalMode('add');
-    setEditingTransaction(undefined);
-    setIsModalOpen(true);
+    navigate('/add-transaction');
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
-    setModalMode('edit');
-    setEditingTransaction(transaction);
-    setIsModalOpen(true);
+    navigate('/add-transaction', { 
+      state: { transaction, mode: 'edit' } 
+    });
   };
 
   const handleDeleteTransaction = async (id: string) => {
@@ -90,23 +86,6 @@ const Transactions: React.FC = () => {
         console.error('Error deleting transaction:', err);
         setError('Failed to delete transaction. Please try again.');
       }
-    }
-  };
-
-  const handleSaveTransaction = async (transactionData: Omit<Transaction, 'id'>) => {
-    try {
-      if (modalMode === 'add') {
-        await transactionService.createTransaction(transactionData);
-      } else if (editingTransaction) {
-        await transactionService.updateTransaction(editingTransaction.id, transactionData);
-      }
-      
-      await loadTransactions(); // Reload transactions
-      setIsModalOpen(false);
-      
-    } catch (err: any) {
-      console.error('Error saving transaction:', err);
-      setError('Failed to save transaction. Please try again.');
     }
   };
 
@@ -237,15 +216,6 @@ const Transactions: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {/* Modal */}
-      <TransactionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleSaveTransaction}
-        transaction={editingTransaction}
-        mode={modalMode}
-      />
     </div>
   );
 };

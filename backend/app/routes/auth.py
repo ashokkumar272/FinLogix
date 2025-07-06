@@ -139,6 +139,38 @@ def update_profile():
                 
                 user.email = new_email
         
+        # Update phone number
+        if 'phone_number' in data:
+            user.phone_number = data['phone_number'].strip() if data['phone_number'] else None
+        
+        # Update income type
+        if 'income_type' in data:
+            if data['income_type']:
+                try:
+                    from app.models.user import IncomeType
+                    user.income_type = IncomeType(data['income_type'])
+                except ValueError:
+                    return jsonify({'error': 'Invalid income type'}), 400
+            else:
+                user.income_type = None
+        
+        # Update budget goal
+        if 'budget_goal' in data:
+            if data['budget_goal'] is not None:
+                try:
+                    budget_goal = float(data['budget_goal'])
+                    if budget_goal < 0:
+                        return jsonify({'error': 'Budget goal must be positive'}), 400
+                    user.budget_goal = budget_goal
+                except (ValueError, TypeError):
+                    return jsonify({'error': 'Invalid budget goal format'}), 400
+            else:
+                user.budget_goal = None
+        
+        # Update profile picture
+        if 'profile_picture' in data:
+            user.profile_picture = data['profile_picture'] if data['profile_picture'] else None
+        
         user.updated_at = datetime.utcnow()
         db.session.commit()
         
