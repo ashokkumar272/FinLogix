@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Transaction } from '../types/transaction';
 import InputField from './InputField';
+import AudioRecorder from './AudioRecorder';
+import { transactionService } from '../services/transactionService';
 
 interface TransactionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (transaction: Omit<Transaction, 'id'>) => void;
+  onSave: (transaction: Omit<Transaction, 'id'>, audioBlob?: Blob) => void;
   transaction?: Transaction;
   mode: 'add' | 'edit';
   initialType?: 'income' | 'expense';
@@ -48,6 +50,10 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
     type: transaction?.type || initialType || 'expense' as 'income' | 'expense'
   });
 
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [initialAudioUrl, setInitialAudioUrl] = useState<string | null>(null);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false);
+
   const getAvailableCategories = () => {
     return formData.type === 'income' ? incomeCategories : expenseCategories;
   };
@@ -62,6 +68,25 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
         notes: transaction?.notes || '',
         type: transaction?.type || initialType || 'expense' as 'income' | 'expense'
       });
+      
+      // Load existing audio memo if editing
+      if (transaction?.id && transaction?.audio_memo_filename) {
+        setIsLoadingAudio(true);
+        transactionService.getAudioMemo(transaction.id)
+          .then(audioUrl => {
+            setInitialAudioUrl(audioUrl);
+            setIsLoadingAudio(false);
+          })
+          .catch(error => {
+            console.error('Error loading audio memo:', error);
+            setIsLoadingAudio(false);
+          });
+      } else {
+        setInitialAudioUrl(null);
+      }
+      
+      // Reset audio blob
+      setAudioBlob(null);
     }
   }, [isOpen, transaction, initialType]);
 
@@ -87,7 +112,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
       category: formData.category,
       notes: formData.notes,
       type: formData.type
-    });
+    }, audioBlob || undefined);
 
     onClose();
   };
@@ -189,6 +214,15 @@ const TransactionModal: React.FC<TransactionModalProps> = ({
               placeholder="Add any notes..."
               rows={3}
               className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            />
+          </div>
+
+          <div>
+            <AudioRecorder
+              onAudioRecorded={setAudioBlob}
+              onAudioDeleted={() => setAudioBlob(null)}
+              initialAudioUrl={initialAudioUrl || undefined}
+              disabled={isLoadingAudio}
             />
           </div>
 

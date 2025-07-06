@@ -40,3 +40,30 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+// AI Services
+export const aiService = {
+  getPersonalizedAdvice: async (monthlyBudgetGoal?: number) => {
+    const response = await api.post('/ai/personalized-advice', {
+      monthly_budget_goal: monthlyBudgetGoal
+    });
+    return response.data;
+  },
+  
+  getInsights: async () => {
+    const response = await api.get('/ai/insights');
+    return response.data;
+  },
+  
+  getBudgetSuggestions: async (targetSavingsRate: number = 20) => {
+    const response = await api.post('/ai/budget-suggestions', {
+      target_savings_rate: targetSavingsRate
+    });
+    return response.data;
+  },
+  
+  getSpendingForecast: async () => {
+    const response = await api.get('/ai/spending-forecast');
+    return response.data;
+  }
+};

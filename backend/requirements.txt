@@ -10,3 +10,4 @@ Werkzeug==3.0.1
 python-socketio==5.10.0
 eventlet==0.33.3
 email-validator==2.1.0
+requests==2.31.0

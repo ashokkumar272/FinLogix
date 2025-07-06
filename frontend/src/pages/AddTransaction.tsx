@@ -105,23 +105,19 @@ const AddTransaction: React.FC = () => {
     setError(null);
 
     try {
-      // Upload audio memo if present
-      const audioData = await uploadAudioMemo();
-      
       const transactionData = {
         date: `${formData.date}T${formData.time}:00`,
         amount: parseFloat(formData.amount),
         category: formData.category,
         notes: formData.notes,
-        type: formData.type,
-        ...(audioData && { audioMemo: audioData })
+        type: formData.type
       };
 
       if (mode === 'add') {
-        await transactionService.createTransaction(transactionData);
+        await transactionService.createTransactionWithAudio(transactionData, audioBlob || undefined);
         setSuccess('Transaction added successfully!');
       } else if (transaction) {
-        await transactionService.updateTransaction(transaction.id, transactionData);
+        await transactionService.updateTransactionWithAudio(transaction.id, transactionData, audioBlob || undefined);
         setSuccess('Transaction updated successfully!');
       }
 

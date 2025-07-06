@@ -7,6 +7,9 @@ from sqlalchemy import func, extract, and_, desc
 from datetime import datetime, timedelta
 from decimal import Decimal
 import calendar
+import requests
+import json
+import os
 
 ai_bp = Blueprint('ai', __name__)
 
@@ -195,8 +198,8 @@ def get_budget_suggestions():
         # Calculate category averages
         category_averages = db.session.query(
             Transaction.category,
-            func.avg(func.sum(Transaction.amount)).label('avg_amount')
-        ).filter(
+            func.avg(func.sum(Transaction.amount)).label('avg_amount'
+        )).filter(
             and_(
                 Transaction.user_id == user.id,
                 Transaction.type == TransactionType.EXPENSE,
@@ -389,3 +392,260 @@ def get_spending_forecast():
         
     except Exception as e:
         return jsonify({'error': 'Internal server error'}), 500
+
+@ai_bp.route('/personalized-advice', methods=['POST'])
+@token_required
+def get_personalized_advice():
+    """Generate personalized budgeting advice using Gemini AI"""
+    try:
+        user = get_current_user()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        data = request.get_json()
+        monthly_budget_goal = data.get('monthly_budget_goal')
+        
+        # Get current month data
+        now = datetime.now()
+        current_year = now.year
+        current_month = now.month
+        
+        # Get monthly income
+        monthly_income = Transaction.query.filter(
+            and_(
+                Transaction.user_id == user.id,
+                Transaction.type == TransactionType.INCOME,
+                extract('year', Transaction.created_at) == current_year,
+                extract('month', Transaction.created_at) == current_month
+            )
+        ).with_entities(func.sum(Transaction.amount)).scalar() or Decimal('0')
+        
+        # Get last 30 days of transactions for detailed analysis
+        thirty_days_ago = datetime.now() - timedelta(days=30)
+        recent_transactions = Transaction.query.filter(
+            and_(
+                Transaction.user_id == user.id,
+                Transaction.created_at >= thirty_days_ago
+            )
+        ).order_by(Transaction.created_at.desc()).all()
+        
+        # Format transaction data for AI analysis
+        transaction_data = []
+        for transaction in recent_transactions:
+            transaction_data.append({
+                'amount': float(transaction.amount),
+                'type': transaction.type.value,
+                'category': transaction.category.value,
+                'date': transaction.created_at.strftime('%Y-%m-%d'),
+                'note': transaction.note or ''
+            })
+        
+        # Get category breakdown for current month
+        category_spending = db.session.query(
+            Transaction.category,
+            func.sum(Transaction.amount).label('total')
+        ).filter(
+            and_(
+                Transaction.user_id == user.id,
+                Transaction.type == TransactionType.EXPENSE,
+                extract('year', Transaction.created_at) == current_year,
+                extract('month', Transaction.created_at) == current_month
+            )
+        ).group_by(Transaction.category).all()
+        
+        category_breakdown = {}
+        for category, amount in category_spending:
+            category_breakdown[category.value] = float(amount)
+        
+        # Prepare data for AI analysis
+        analysis_data = {
+            'monthly_income': float(monthly_income),
+            'monthly_budget_goal': monthly_budget_goal,
+            'category_breakdown': category_breakdown,
+            'recent_transactions': transaction_data[:20],  # Last 20 transactions
+            'analysis_period': '30 days'
+        }
+        
+        # Generate AI advice using Gemini
+        ai_advice = generate_gemini_advice(analysis_data)
+        
+        return jsonify({
+            'advice': ai_advice,
+            'data_summary': {
+                'monthly_income': float(monthly_income),
+                'monthly_budget_goal': monthly_budget_goal,
+                'total_categories': len(category_breakdown),
+                'transactions_analyzed': len(transaction_data)
+            },
+            'generated_at': datetime.utcnow().isoformat()
+        }), 200
+        
+    except Exception as e:
+        print(f"Error in personalized advice: {str(e)}")
+        return jsonify({'error': 'Internal server error'}), 500
+
+def generate_gemini_advice(data):
+    """Generate personalized advice using Gemini AI API"""
+    try:
+        # Get API configuration
+        from flask import current_app
+        api_key = current_app.config.get('GEMINI_API_KEY')
+        api_url = current_app.config.get('GEMINI_API_URL')
+        
+        if not api_key:
+            return ["Unable to generate personalized advice at this time."]
+        
+        # Calculate total spending by category
+        total_spending = sum(data['category_breakdown'].values())
+        
+        # Create prompt for Gemini
+        prompt = f"""
+        You are a smart and friendly personal finance assistant for an app called FinLogix. 
+        
+        Analyze this user's financial data and provide personalized budgeting advice:
+        
+        Monthly Income: ${data['monthly_income']:.2f}
+        Monthly Budget Goal: ${data.get('monthly_budget_goal', 'Not specified')}
+        Current Month Category Spending:
+        """
+        
+        for category, amount in data['category_breakdown'].items():
+            percentage = (amount / total_spending * 100) if total_spending > 0 else 0
+            prompt += f"- {category}: ${amount:.2f} ({percentage:.1f}%)\n"
+        
+        prompt += f"""
+        
+        Recent transaction patterns from the last {data['analysis_period']}:
+        """
+        
+        # Add recent transactions summary
+        income_count = sum(1 for t in data['recent_transactions'] if t['type'] == 'income')
+        expense_count = sum(1 for t in data['recent_transactions'] if t['type'] == 'expense')
+        
+        prompt += f"- Total transactions: {len(data['recent_transactions'])} ({income_count} income, {expense_count} expenses)\n"
+        
+        # Add category frequency analysis
+        category_frequency = {}
+        for transaction in data['recent_transactions']:
+            if transaction['type'] == 'expense':
+                category = transaction['category']
+                category_frequency[category] = category_frequency.get(category, 0) + 1
+        
+        if category_frequency:
+            most_frequent = max(category_frequency, key=category_frequency.get)
+            prompt += f"- Most frequent spending category: {most_frequent} ({category_frequency[most_frequent]} transactions)\n"
+        
+        prompt += f"""
+        
+        Please provide 2-3 short bullet points of personalized budgeting advice:
+        
+        1. Identify any overspending or budget imbalances
+        2. Recognize spikes in specific categories (e.g., Dining, Travel, Shopping)
+        3. Mention positive habits if they exist
+        4. Suggest practical, actionable tips
+        
+        Requirements:
+        - Use simple, friendly language
+        - Keep each point under 80 words
+        - Be helpful and non-judgmental
+        - Focus on actionable advice
+        - If data is insufficient, provide general savings advice
+        
+        Format your response as a JSON array of advice strings.
+        """
+        
+        # Make API call to Gemini
+        headers = {
+            'Content-Type': 'application/json',
+        }
+        
+        payload = {
+            'contents': [
+                {
+                    'parts': [
+                        {
+                            'text': prompt
+                        }
+                    ]
+                }
+            ]
+        }
+        
+        response = requests.post(
+            f"{api_url}?key={api_key}",
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            if 'candidates' in result and len(result['candidates']) > 0:
+                generated_text = result['candidates'][0]['content']['parts'][0]['text']
+                
+                # Try to parse as JSON first
+                try:
+                    advice_list = json.loads(generated_text)
+                    if isinstance(advice_list, list):
+                        return advice_list
+                except json.JSONDecodeError:
+                    pass
+                
+                # If not JSON, split by bullet points or lines
+                advice_lines = []
+                lines = generated_text.split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if line and (line.startswith('•') or line.startswith('-') or line.startswith('*') or line[0].isdigit()):
+                        # Clean up the line
+                        cleaned_line = line.lstrip('•-*0123456789. ').strip()
+                        if cleaned_line:
+                            advice_lines.append(cleaned_line)
+                
+                return advice_lines[:3] if advice_lines else [generated_text[:200] + "..."]
+        
+        # Fallback advice if API fails
+        return generate_fallback_advice(data)
+        
+    except Exception as e:
+        print(f"Error calling Gemini API: {str(e)}")
+        return generate_fallback_advice(data)
+
+def generate_fallback_advice(data):
+    """Generate basic advice when AI API is unavailable"""
+    advice = []
+    
+    monthly_income = data.get('monthly_income', 0)
+    monthly_budget_goal = data.get('monthly_budget_goal')
+    category_breakdown = data.get('category_breakdown', {})
+    
+    total_spending = sum(category_breakdown.values())
+    
+    # Basic spending analysis
+    if monthly_income > 0:
+        spending_ratio = (total_spending / monthly_income) * 100
+        if spending_ratio > 90:
+            advice.append("You're spending over 90% of your income this month. Consider reviewing your expenses and identifying areas where you can cut back to build an emergency fund.")
+        elif spending_ratio < 50:
+            advice.append("Great job! You're maintaining a healthy spending ratio. Consider investing your surplus income for long-term financial growth.")
+    
+    # Category analysis
+    if category_breakdown:
+        top_category = max(category_breakdown, key=category_breakdown.get)
+        top_amount = category_breakdown[top_category]
+        
+        if total_spending > 0:
+            percentage = (top_amount / total_spending) * 100
+            if percentage > 40:
+                advice.append(f"Your {top_category} spending accounts for {percentage:.0f}% of your total expenses. Consider setting a specific budget limit for this category to better control spending.")
+    
+    # Budget goal comparison
+    if monthly_budget_goal and total_spending > monthly_budget_goal:
+        overspend = total_spending - monthly_budget_goal
+        advice.append(f"You're ${overspend:.2f} over your monthly budget goal. Try tracking daily expenses and using the 50/30/20 rule: 50% needs, 30% wants, 20% savings.")
+    
+    # Default advice if no specific insights
+    if not advice:
+        advice.append("Keep track of your daily expenses and review your spending weekly. Small, consistent changes in spending habits can lead to significant savings over time.")
+    
+    return advice[:3]  # Return max 3 pieces of advice

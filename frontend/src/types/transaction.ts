@@ -5,6 +5,7 @@ export interface Transaction {
   category: string;
   notes: string;
   type: 'income' | 'expense';
+  audio_memo_filename?: string;
 }
 
 export type TransactionFilter = 'all' | 'income' | 'expense';

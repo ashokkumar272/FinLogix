@@ -36,6 +36,7 @@ class Transaction(db.Model):
     category = db.Column(db.Enum(TransactionCategory), nullable=False)
     type = db.Column(db.Enum(TransactionType), nullable=False)
     note = db.Column(db.Text)
+    audio_memo_filename = db.Column(db.String(255), nullable=True)  # Store filename of audio memo
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -48,6 +49,7 @@ class Transaction(db.Model):
             'category': self.category.value,
             'type': self.type.value,
             'note': self.note,
+            'audio_memo_filename': self.audio_memo_filename,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
         }

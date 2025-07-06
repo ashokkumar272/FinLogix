@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import { Transaction } from '../types/transaction';
+import { transactionService } from '../services/transactionService';
 
 interface TransactionItemProps {
   transaction: Transaction;
@@ -12,6 +13,41 @@ const TransactionItem: React.FC<TransactionItemProps> = ({
   onEdit, 
   onDelete 
 }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const playAudio = async () => {
+    try {
+      if (!audioUrl) {
+        const url = await transactionService.getAudioMemo(transaction.id);
+        setAudioUrl(url);
+        
+        // Wait for audio to load
+        setTimeout(() => {
+          if (audioRef.current) {
+            audioRef.current.play();
+            setIsPlaying(true);
+          }
+        }, 100);
+      } else {
+        if (audioRef.current) {
+          audioRef.current.play();
+          setIsPlaying(true);
+        }
+      }
+    } catch (error) {
+      console.error('Error playing audio:', error);
+    }
+  };
+
+  const pauseAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    }
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -55,6 +91,23 @@ const TransactionItem: React.FC<TransactionItemProps> = ({
         </div>
         
         <div className="flex items-center space-x-2 ml-4">
+          {transaction.audio_memo_filename && (
+            <button
+              onClick={isPlaying ? pauseAudio : playAudio}
+              className="p-2 text-green-600 hover:bg-green-50 rounded-full transition-colors"
+              title={isPlaying ? 'Pause audio memo' : 'Play audio memo'}
+            >
+              {isPlaying ? (
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              )}
+            </button>
+          )}
           <button
             onClick={() => onEdit(transaction)}
             className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
@@ -75,6 +128,16 @@ const TransactionItem: React.FC<TransactionItemProps> = ({
           </button>
         </div>
       </div>
+      
+      {audioUrl && (
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          onEnded={() => setIsPlaying(false)}
+          onPause={() => setIsPlaying(false)}
+          style={{ display: 'none' }}
+        />
+      )}
     </div>
   );
 };

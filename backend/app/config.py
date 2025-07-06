@@ -9,6 +9,10 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     
+    # Gemini AI API Configuration
+    GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', 'AIzaSyBMrgySOgwvLa42dn3k1lbe6AP7kWkJQPc')
+    GEMINI_API_URL = os.getenv('GEMINI_API_URL', 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent')
+    
 class DevelopmentConfig(Config):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = os.getenv('DEV_DATABASE_URL', 'postgresql://postgres:India%40123@localhost/finlogix_dev')

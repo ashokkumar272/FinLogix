@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Transaction } from '../types/transaction';
 import { dashboardService, DashboardSummary } from '../services/dashboardService';
 import { useAuth } from '../contexts/AuthContext';
+import PersonalizedAdvice from '../components/PersonalizedAdvice';
 
 type DateFilter = 'today' | 'week' | 'month' | 'custom';
 
@@ -380,6 +381,11 @@ const Dashboard: React.FC = () => {
           >
             View Insights
           </Link>
+        </div>
+
+        {/* Personalized Advice */}
+        <div className="mb-8">
+          <PersonalizedAdvice monthlyBudgetGoal={user?.budget_goal} />
         </div>
 
         {/* Quick Actions */}
