@@ -239,7 +239,7 @@ const AddTransaction: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-900">
       <div className="max-w-2xl mx-auto px-4 py-8">
         
         {/* Header */}
@@ -247,24 +247,24 @@ const AddTransaction: React.FC = () => {
           <div className="flex items-center gap-4 mb-4">
             <button
               onClick={() => navigate('/transactions')}
-              className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-gray-300 hover:text-gray-100 hover:bg-gray-800 rounded-lg transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </button>
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-100">
               {mode === 'add' ? 'Add Transaction' : 'Edit Transaction'}
             </h1>
           </div>
-          <p className="text-gray-600">
+          <p className="text-gray-300">
             {mode === 'add' ? 'Record your income or expense' : 'Update your transaction details'}
           </p>
         </div>
 
         {/* Success/Error Messages */}
         {success && (
-          <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+          <div className="mb-6 bg-green-900 border border-green-700 text-green-100 px-4 py-3 rounded-lg">
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -275,7 +275,7 @@ const AddTransaction: React.FC = () => {
         )}
 
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="mb-6 bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-lg">
             <div className="flex items-center gap-2">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -286,12 +286,12 @@ const AddTransaction: React.FC = () => {
         )}
 
         {/* Main Form */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 p-6">
           <form onSubmit={handleSubmit} className="space-y-6">
             
             {/* Transaction Type */}
             <div>
-              <label className="block mb-3 text-sm font-medium text-gray-700">
+              <label className="block mb-3 text-sm font-medium text-gray-300">
                 Transaction Type
               </label>
               <div className="grid grid-cols-2 gap-4">
@@ -300,21 +300,21 @@ const AddTransaction: React.FC = () => {
                   onClick={() => setFormData(prev => ({ ...prev, type: 'expense' }))}
                   className={`p-4 rounded-lg border-2 transition-colors ${
                     formData.type === 'expense'
-                      ? 'border-red-500 bg-red-50 text-red-700'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-red-500 bg-red-900 text-red-100'
+                      : 'border-gray-600 hover:border-gray-500 bg-gray-700 text-gray-300'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-full ${
-                      formData.type === 'expense' ? 'bg-red-100' : 'bg-gray-100'
+                      formData.type === 'expense' ? 'bg-red-800' : 'bg-gray-600'
                     }`}>
-                      <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 13l-5 5m0 0l-5-5m5 5V6" />
                       </svg>
                     </div>
                     <div className="text-left">
                       <div className="font-medium">Expense</div>
-                      <div className="text-sm text-gray-500">Money going out</div>
+                      <div className="text-sm text-gray-400">Money going out</div>
                     </div>
                   </div>
                 </button>
@@ -324,21 +324,21 @@ const AddTransaction: React.FC = () => {
                   onClick={() => setFormData(prev => ({ ...prev, type: 'income' }))}
                   className={`p-4 rounded-lg border-2 transition-colors ${
                     formData.type === 'income'
-                      ? 'border-green-500 bg-green-50 text-green-700'
-                      : 'border-gray-200 hover:border-gray-300'
+                      ? 'border-green-500 bg-green-900 text-green-100'
+                      : 'border-gray-600 hover:border-gray-500 bg-gray-700 text-gray-300'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-full ${
-                      formData.type === 'income' ? 'bg-green-100' : 'bg-gray-100'
+                      formData.type === 'income' ? 'bg-green-800' : 'bg-gray-600'
                     }`}>
-                      <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
                       </svg>
                     </div>
                     <div className="text-left">
                       <div className="font-medium">Income</div>
-                      <div className="text-sm text-gray-500">Money coming in</div>
+                      <div className="text-sm text-gray-400">Money coming in</div>
                     </div>
                   </div>
                 </button>
@@ -347,7 +347,7 @@ const AddTransaction: React.FC = () => {
 
             {/* Amount */}
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
+              <label className="block mb-2 text-sm font-medium text-gray-300">
                 Amount *
               </label>
               <div className="relative">
@@ -426,7 +426,7 @@ const AddTransaction: React.FC = () => {
               <label className="block mb-3 text-sm font-medium text-gray-700">
                 Audio Memo
               </label>
-              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+              <div className="rounded-lg p-4 bg-gray-700">
                 {!audioUrl ? (
                   <div className="space-y-3">
                     <div className="flex gap-3">

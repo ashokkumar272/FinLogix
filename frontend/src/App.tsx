@@ -15,7 +15,7 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen bg-gray-900">
+        <div className="min-h-screen bg-gray-900 dark">
           <Navbar/>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

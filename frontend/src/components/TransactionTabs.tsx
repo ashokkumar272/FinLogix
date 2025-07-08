@@ -13,15 +13,15 @@ const TransactionTabs: React.FC<TabsProps> = ({ activeTab, onTabChange }) => {
   ];
 
   return (
-    <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+    <div className="flex w-full">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
-          className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+          className={`px-4 py-2 text-sm w-full font-medium transition-colors ${
             activeTab === tab.id
-              ? 'bg-white text-gray-900 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              ? 'border-b-2 text-white'
+              : 'text-gray-300 hover:text-gray-100 hover:border-b-2'
           }`}
         >
           {tab.label}

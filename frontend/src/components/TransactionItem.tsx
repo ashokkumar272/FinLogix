@@ -62,41 +62,43 @@ const TransactionItem: React.FC<TransactionItemProps> = ({
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between">
+    <div className="bg-gray-700 rounded-lg shadow-sm border border-gray-700 p-4 hover:shadow-md transition-shadow">
+      <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-3">
-              <div className={`w-3 h-3 rounded-full ${
-                transaction.type === 'income' ? 'bg-green-500' : 'bg-red-500'
-              }`}></div>
-              <span className="text-sm text-gray-500">{formatDate(transaction.date)}</span>
-            </div>
+          <div className="flex items-center space-x-3 mb-2">
+            <div className={`w-3 h-3 rounded-full ${
+              transaction.type === 'income' ? 'bg-green-400' : 'bg-red-400'
+            }`}></div>
             <span className={`text-lg font-semibold ${
-              transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+              transaction.type === 'income' ? 'text-green-400' : 'text-red-400'
             }`}>
               {formatAmount(transaction.amount, transaction.type)}
             </span>
           </div>
           
           <div className="mb-2">
-            <span className="inline-block bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
+            <span className="inline-block bg-gray-700 text-gray-200 text-xs px-2 py-1 rounded-full">
               {transaction.category}
             </span>
           </div>
           
           {transaction.notes && (
-            <p className="text-sm text-gray-600 truncate">{transaction.notes}</p>
+            <p className="text-sm text-gray-300 truncate">
+              <span className="text-gray-400">Note:</span> {transaction.notes}
+            </p>
           )}
         </div>
         
-        <div className="flex items-center space-x-2 ml-4">
-          {transaction.audio_memo_filename && (
-            <button
-              onClick={isPlaying ? pauseAudio : playAudio}
-              className="p-2 text-green-600 hover:bg-green-50 rounded-full transition-colors"
-              title={isPlaying ? 'Pause audio memo' : 'Play audio memo'}
-            >
+        <div className="flex flex-col items-end space-y-2 ml-4">
+          <span className="text-sm text-gray-300">{formatDate(transaction.date)}</span>
+          
+          <div className="flex items-center space-x-2">
+            {transaction.audio_memo_filename && (
+              <button
+                onClick={isPlaying ? pauseAudio : playAudio}
+                className="p-2 text-green-400 hover:bg-green-900 border border-green-500 hover:border-green-400 rounded-full transition-colors"
+                title={isPlaying ? 'Pause audio memo' : 'Play audio memo'}
+              >
               {isPlaying ? (
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
@@ -110,7 +112,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({
           )}
           <button
             onClick={() => onEdit(transaction)}
-            className="p-2 text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+            className="p-2 text-blue-400 hover:bg-blue-900 border border-blue-500 hover:border-blue-400 rounded-full transition-colors"
             title="Edit transaction"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,7 +121,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({
           </button>
           <button
             onClick={() => onDelete(transaction.id)}
-            className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors"
+            className="p-2 text-red-400 hover:bg-red-900 border border-red-500 hover:border-red-400 rounded-full transition-colors"
             title="Delete transaction"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -128,6 +130,7 @@ const TransactionItem: React.FC<TransactionItemProps> = ({
           </button>
         </div>
       </div>
+    </div>
       
       {audioUrl && (
         <audio

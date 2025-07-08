@@ -91,25 +91,25 @@ const Transactions: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading transactions...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-400 mx-auto mb-4"></div>
+          <p className="text-gray-300">Loading transactions...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-[calc(100vh-80px)] bg-gray-50 flex flex-col overflow-hidden">
+    <div className="h-[calc(100vh-80px)] bg-gray-900 flex flex-col overflow-hidden">
       <div className="max-w-2xl mx-auto px-4 py-1 flex-1 flex flex-col min-h-0 w-full">
         
         {error && (
-          <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="mb-4 bg-red-900 border border-red-700 text-red-100 px-4 py-3 rounded-lg">
             <p className="text-sm">{error}</p>
             <button 
               onClick={() => setError(null)}
-              className="text-red-600 hover:text-red-800 text-sm font-medium mt-2"
+              className="text-red-300 hover:text-red-100 text-sm font-medium mt-2"
             >
               Dismiss
             </button>
@@ -117,8 +117,8 @@ const Transactions: React.FC = () => {
         )}
 
         {/* Controls */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-2">
+        <div className="bg-gray-800">
+          <div>
             <div className="flex items-center justify-center">
               <TransactionTabs 
                 activeTab={activeTab} 
@@ -129,19 +129,7 @@ const Transactions: React.FC = () => {
         </div>
 
         {/* Transaction List */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col min-h-0">
-          <div className="px-4 py-2 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {activeTab === 'all' ? 'All Transactions' : 
-                 activeTab === 'income' ? 'Income Transactions' : 'Expense Transactions'}
-              </h2>
-              <span className="text-sm text-gray-500">
-                {sortedTransactions.length} transaction{sortedTransactions.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-          </div>
-          
+        <div className="bg-gray-800 rounded-lg shadow-sm border border-gray-700 flex-1 flex flex-col min-h-0">
           <div className="flex-1 overflow-y-auto p-4 min-h-0">
             <TransactionList
               transactions={sortedTransactions}

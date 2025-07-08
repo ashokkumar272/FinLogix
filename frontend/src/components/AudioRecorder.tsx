@@ -119,7 +119,7 @@ const AudioRecorder: React.FC<AudioRecorderProps> = ({
         )}
       </div>
       
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-3 bg-gray-800">
         {!audioUrl ? (
           // Recording controls
           <div className="flex items-center space-x-3">
