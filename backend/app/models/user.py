@@ -76,14 +76,14 @@ class User(db.Model):
             'id': self.id,
             'name': self.name,
             'email': self.email,
-            'role': self.role.value,
+            'role': self.role.value if self.role else None,
             'income_type': self.income_type.value if self.income_type else None,
             'budget_goal': float(self.budget_goal) if self.budget_goal else None,
             'profile_picture': self.profile_picture,
             'phone_number': self.phone_number,
             'is_active': self.is_active,
-            'created_at': self.created_at.isoformat(),
-            'updated_at': self.updated_at.isoformat()
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
         
         # Include sensitive information only if requested

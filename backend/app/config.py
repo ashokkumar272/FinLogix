@@ -3,7 +3,7 @@ from datetime import timedelta
 
 class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'postgresql://username:password@localhost/finlogix')
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'jwt-secret-change-in-production')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
@@ -15,11 +15,11 @@ class Config:
     
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.getenv('DEV_DATABASE_URL', 'postgresql://postgres:India%40123@localhost/finlogix_dev')
+    SQLALCHEMY_DATABASE_URI = os.getenv('DEV_DATABASE_URL')
 
 class ProductionConfig(Config):
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
+    SQLALCHEMY_DATABASE_URI = os.getenv('PROD_DATABASE_URL')
 
 class TestingConfig(Config):
     TESTING = True
