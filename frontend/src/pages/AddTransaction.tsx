@@ -351,7 +351,7 @@ const AddTransaction: React.FC = () => {
                 Amount *
               </label>
               <div className="relative">
-                <span className="absolute left-3 top-3 text-gray-500">$</span>
+                <span className="absolute left-3 top-3 text-gray-400">$</span>
                 <input
                   type="number"
                   name="amount"
@@ -360,7 +360,7 @@ const AddTransaction: React.FC = () => {
                   placeholder="0.00"
                   step="0.01"
                   min="0"
-                  className="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full pl-8 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   required
                 />
               </div>
@@ -387,14 +387,14 @@ const AddTransaction: React.FC = () => {
 
             {/* Category */}
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
+              <label className="block mb-2 text-sm font-medium text-gray-300">
                 Category *
               </label>
               <select
                 name="category"
                 value={formData.category}
                 onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 required
               >
                 <option value="">Select a category</option>
@@ -408,7 +408,7 @@ const AddTransaction: React.FC = () => {
 
             {/* Notes */}
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
+              <label className="block mb-2 text-sm font-medium text-gray-300">
                 Notes
               </label>
               <textarea
@@ -417,13 +417,13 @@ const AddTransaction: React.FC = () => {
                 onChange={handleInputChange}
                 placeholder="Add any additional details..."
                 rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
               />
             </div>
 
             {/* Audio Memo */}
             <div>
-              <label className="block mb-3 text-sm font-medium text-gray-700">
+              <label className="block mb-3 text-sm font-medium text-gray-300">
                 Audio Memo
               </label>
               <div className="rounded-lg p-4 bg-gray-700">
